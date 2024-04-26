@@ -64,6 +64,44 @@ void Application::PreUpdate()
 // ///// ///// ///// ///// ///// ///// ///// ///// ///// ///// ///// ///// ///// ///// /////
 void Application::Update()
 {
+	// カメラ行列の更新
+	{
+		
+		// どれくらいの大きさか
+		Math::Matrix _mScale = Math::Matrix::CreateScale(1);
+
+		// 世界の中心に対してどれだけ傾けているか                   　　↓x軸
+		Math::Matrix _mRotationX = Math::Matrix::CreateRotationX(DirectX::XMConvertToRadians(45));  // 引数…DirectX::XMConvertToRadians()
+		
+		static float _yRot = 0;
+		Math::Matrix _mRotationY = Math::Matrix::CreateRotationY(DirectX::XMConvertToRadians(_yRot));  // 引数…DirectX::XMConvertToRadians()
+		//_yRot += 0.5f;
+
+		// どこに配置されてるか
+		Math::Matrix _mTrans = Math::Matrix::CreateTranslation(0, 6.0f, -5.0f);
+
+		
+
+	    // カメラの「ワールド行列」を作成し,適応させる
+		// ワールド行列 … 原点に対しての行列
+		// 行列の合成 = w=s * r * t
+		Math::Matrix _worldMat = _mScale * _mRotationX * _mTrans * _mRotationY;
+		
+		// _worldMatを使用する
+		m_spCamera->SetCameraMatrix(_worldMat);
+	}
+
+	// ハム太郎更新
+	{
+		if (GetAsyncKeyState('W'));
+		{
+
+		}
+
+		if (GetAsyncKeyState('A'));
+		if (GetAsyncKeyState('S'));
+		if (GetAsyncKeyState('D'));
+	}
 }
 
 // ///// ///// ///// ///// ///// ///// ///// ///// ///// ///// ///// ///// ///// ///// /////
@@ -100,6 +138,7 @@ void Application::KdPostDraw()
 // ///// ///// ///// ///// ///// ///// ///// ///// ///// ///// ///// ///// ///// ///// /////
 void Application::PreDraw()
 {
+	m_spCamera->SetToShader();
 }
 
 // ///// ///// ///// ///// ///// ///// ///// ///// ///// ///// ///// ///// ///// ///// /////
@@ -119,6 +158,14 @@ void Application::Draw()
 	// 陰影のあるオブジェクト(不透明な物体や2Dキャラ)はBeginとEndの間にまとめてDrawする
 	KdShaderManager::Instance().m_StandardShader.BeginLit();
 	{
+
+		// ハムスター表示
+		 
+		//Math::Matrix _mat = Math::Matrix::CreateTranslation(0, 0, 5);
+		KdShaderManager::Instance().m_StandardShader.DrawPolygon(*m_spPoly, m_HamuWorld);
+		
+		// 地形表示
+		KdShaderManager::Instance().m_StandardShader.DrawModel(*m_spModel);
 	}
 	KdShaderManager::Instance().m_StandardShader.EndLit();
 
@@ -178,9 +225,9 @@ bool Application::Init(int w, int h)
 	// フルスクリーン確認
 	//===================================================================
 	bool bFullScreen = false;
-	if (MessageBoxA(m_window.GetWndHandle(), "フルスクリーンにしますか？", "確認", MB_YESNO | MB_ICONQUESTION | MB_DEFBUTTON2) == IDYES) {
+	/*if (MessageBoxA(m_window.GetWndHandle(), "フルスクリーンにしますか？", "確認", MB_YESNO | MB_ICONQUESTION | MB_DEFBUTTON2) == IDYES) {
 		bFullScreen = true;
-	}
+	}*/
 
 	//===================================================================
 	// Direct3D初期化
@@ -221,8 +268,24 @@ bool Application::Init(int w, int h)
 	//===================================================================
 	KdAudioManager::Instance().Init();
 
-	// テスト
-	test = 2;
+	//===================================================================
+	// カメラ初期化
+	//===================================================================
+	m_spCamera = std::make_shared<KdCamera>();
+	
+	//===================================================================
+	// ハムスター初期化
+	//===================================================================
+	m_spPoly = std::make_shared<KdSquarePolygon>();
+	m_spPoly->SetMaterial("Asset/Data/LessonData/Character/Hamu.png");
+	m_spPoly->SetPivot(KdSquarePolygon::PivotType::Center_Bottom); // 足元を原点とする
+
+	//===================================================================
+	// 地形初期化
+	//===================================================================
+	m_spModel = std::make_shared<KdModelData>();
+	m_spModel->Load("Asset/Data/LessonData/Terrain/Terrain.gltf");
+
 
 	return true;
 }
